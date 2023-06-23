@@ -1,4 +1,4 @@
-﻿namespace MediaBox.App
+﻿namespace MediaBox.App.Views
 {
     partial class FrmMain
     {
@@ -121,8 +121,8 @@
             MaximizeBox = false;
             Name = "FrmMain";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "FrmMain";
-            Shown += FrmMain_Shown;
+            Text = "MediaBox";
+            Load += FrmMain_Load;
             ResumeLayout(false);
         }
 

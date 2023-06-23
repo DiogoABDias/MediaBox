@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33723.286
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaBox.App", "MediaBox.App\MediaBox.App.csproj", "{ED75B0AB-7F0D-40DF-8D5E-57C5F5059E69}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MediaBox.App", "MediaBox.App\MediaBox.App.csproj", "{ED75B0AB-7F0D-40DF-8D5E-57C5F5059E69}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaBox.Core", "MediaBox.Core\MediaBox.Core.csproj", "{95A07292-5D81-4970-BAEC-B16A64D3388C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{ED75B0AB-7F0D-40DF-8D5E-57C5F5059E69}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ED75B0AB-7F0D-40DF-8D5E-57C5F5059E69}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ED75B0AB-7F0D-40DF-8D5E-57C5F5059E69}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95A07292-5D81-4970-BAEC-B16A64D3388C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95A07292-5D81-4970-BAEC-B16A64D3388C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95A07292-5D81-4970-BAEC-B16A64D3388C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95A07292-5D81-4970-BAEC-B16A64D3388C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

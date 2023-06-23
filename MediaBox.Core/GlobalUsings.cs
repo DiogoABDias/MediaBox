@@ -1,0 +1,11 @@
+﻿global using Humanizer;
+global using MediaBox.App.Models;
+global using MediaBox.Core.Interfaces;
+global using MediaBox.Core.Models.Api;
+global using MediaBox.Core.Models.Enums;
+global using MediaBox.Core.ViewModels;
+global using Newtonsoft.Json;
+global using Refit;
+global using Serilog;
+global using Serilog.Core;
+global using System.ComponentModel;

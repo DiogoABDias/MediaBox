@@ -2,37 +2,15 @@
 
 public static class SourceController
 {
-    private static ITvdb? _client;
     private static List<Source> _sources = new();
 
-    static SourceController() => LoadSourcesAsync();
-
-    internal static void Authorize(string? token)
-    {
-        try
-        {
-            _client = RestService.For<ITvdb>("https://api4.thetvdb.com/v4",
-                new RefitSettings()
-                {
-                    AuthorizationHeaderValueGetter = () => Task.FromResult(token ?? "")
-                });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.ToString());
-        }
-    }
+    static SourceController() => LoadSources();
 
     public static async Task<LanguagesView> GetLanguagesAsync()
     {
         LanguagesView result = new();
 
-        if (_client is null)
-        {
-            return result;
-        }
-
-        Task<Response<List<Language>>> response = _client.GetLanguagesAsync();
+        Task<Response<List<Language>>> response = ApiController.Client.GetLanguagesAsync();
 
         await response;
 
@@ -89,18 +67,19 @@ public static class SourceController
             result.Sources.Add(sourceView);
         }
 
+        result.Sources = result.Sources.OrderBy(x => x.Name).ToList();
         return result;
     }
 
-    private static async Task LoadSourcesAsync()
+    private static void LoadSources()
     {
         if (!File.Exists("sources.txt"))
         {
             return;
         }
 
-        string content = await File.ReadAllTextAsync("sources.txt");
-        _sources = JsonConvert.DeserializeObject<List<Source>>(content) ?? new();
+        Task<string> content = File.ReadAllTextAsync("sources.txt");
+        _sources = JsonConvert.DeserializeObject<List<Source>>(content.Result) ?? new();
     }
 
     public static async Task SaveSourcesAsync()
@@ -116,14 +95,7 @@ public static class SourceController
             return;
         }
 
-        Source source = new()
-        {
-            Name = sourceView.Name,
-            Type = sourceView.Type.DehumanizeTo<MediaType>(),
-            Language = sourceView.Language,
-            Path = sourceView.Path
-        };
-
+        Source source = new(sourceView.Name, sourceView.Type.DehumanizeTo<MediaType>(), sourceView.Language, sourceView.Path);
         _sources.Add(source);
     }
 
@@ -136,13 +108,7 @@ public static class SourceController
             return;
         }
 
-        _sources[index] = new()
-        {
-            Name = sourceView.Name,
-            Type = sourceView.Type.DehumanizeTo<MediaType>(),
-            Language = sourceView.Language,
-            Path = sourceView.Path
-        };
+        _sources[index] = new(sourceView.Name, sourceView.Type.DehumanizeTo<MediaType>(), sourceView.Language, sourceView.Path);
     }
 
     public static void DeleteSource(string name)
@@ -156,5 +122,5 @@ public static class SourceController
         _sources.RemoveAt(index);
     }
 
-    public static async void DiscardChanges() => await LoadSourcesAsync();
+    public static void DiscardChanges() => LoadSources();
 }

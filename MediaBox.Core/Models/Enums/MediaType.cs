@@ -2,10 +2,10 @@
 
 public enum MediaType
 {
-    [Description("Movie")]
-    Movie = 1,
-    [Description("TV Show")]
-    TvShow = 2,
-    [Description("Cartoon")]
-    Cartoon = 3
+    [Description("Movies")]
+    Movies = 1,
+    [Description("TV Shows")]
+    TvShows = 2,
+    [Description("Cartoons")]
+    Cartoons = 3
 }

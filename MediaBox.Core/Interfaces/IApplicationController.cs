@@ -11,7 +11,7 @@ public interface IApplicationController
 
     ////////////////////////////////////////MEDIA////////////////////////////////////////
 
-    void ScanSources(List<int>? sourceIds = default);
+    Task ScanSourcesAsync(List<int>? sourceIds = default);
 
     MediaView GetMedia(MediaType mediaType);
 

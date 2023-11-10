@@ -71,13 +71,13 @@ public class ApplicationController : IApplicationController
 
     ////////////////////////////////////////MEDIA////////////////////////////////////////
 
-    public void ScanSources(List<int>? sourceIds = default)
+    public async Task ScanSourcesAsync(List<int>? sourceIds = default)
     {
         try
         {
             List<Source> sources = _sourceController.GetSources(sourceIds);
 
-            _mediaController.ScanSourcesAsync(sources);
+            await _mediaController.ScanSourcesAsync(sources);
         }
         catch (Exception exception)
         {

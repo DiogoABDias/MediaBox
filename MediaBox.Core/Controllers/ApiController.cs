@@ -53,9 +53,9 @@ public class ApiController : IApiController
                     AuthorizationHeaderValueGetter = (httpRequestMessage, continuationToken) => Task.FromResult(response.Result?.Data?.Token ?? "")
                 });
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            Console.WriteLine(ex.ToString());
+            Log.Fatal(exception);
         }
     }
 
@@ -86,9 +86,9 @@ public class ApiController : IApiController
 
             result = Mapping.Mapper.Map<MediaInformation>(response.Data.First());
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            Console.WriteLine(ex.ToString());
+            Log.Fatal(exception);
         }
 
         return result;
@@ -128,15 +128,22 @@ public class ApiController : IApiController
 
         foreach (ApiLanguage language in response.Result.Data)
         {
-            LanguageView languageView = new()
+            try
             {
-                Id = language.Id,
-                Name = language.Name,
-                NativeName = language.NativeName,
-                ShortCode = language.ShortCode
-            };
+                LanguageView languageView = new()
+                {
+                    Id = language.Id,
+                    Name = language.Name,
+                    NativeName = language.NativeName,
+                    ShortCode = language.ShortCode
+                };
 
-            result.Languages.Add(languageView);
+                result.Languages.Add(languageView);
+            }
+            catch (Exception exception)
+            {
+                Log.Fatal(exception);
+            }
         }
 
         return result;

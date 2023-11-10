@@ -18,20 +18,26 @@ public class ApplicationController : IApplicationController
     {
         SourcesView result = new();
 
-        List<Source> sources = _sourceController.GetSources();
-
-        foreach (Source source in sources)
+        try
         {
-            SourceView sourceView = new()
-            {
-                Id = source.Id,
-                Name = source.Name,
-                Type = source.Type.Humanize(),
-                Language = source.Language,
-                Path = source.Path
-            };
+            List<Source> sources = _sourceController.GetSources();
 
-            result.Sources.Add(sourceView);
+            foreach (Source source in sources)
+            {
+                try
+                {
+                    SourceView sourceView = Mapping.Mapper.Map<SourceView>(source);
+                    result.Sources.Add(sourceView);
+                }
+                catch (Exception exception)
+                {
+                    Log.Fatal(exception);
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.Fatal(exception);
         }
 
         return result;
@@ -71,13 +77,13 @@ public class ApplicationController : IApplicationController
 
     ////////////////////////////////////////MEDIA////////////////////////////////////////
 
-    public void ScanSources(List<int>? sourceIds = default)
+    public async Task ScanSourcesAsync(List<int>? sourceIds = default)
     {
         try
         {
             List<Source> sources = _sourceController.GetSources(sourceIds);
 
-            _mediaController.ScanSourcesAsync(sources);
+            await _mediaController.ScanSourcesAsync(sources);
         }
         catch (Exception exception)
         {
@@ -103,7 +109,31 @@ public class ApplicationController : IApplicationController
 
     ////////////////////////////////////////API////////////////////////////////////////
 
-    public async Task LoginAsync() => await _apiController.LoginAsync();
+    public async Task LoginAsync()
+    {
+        try
+        {
+            await _apiController.LoginAsync();
+        }
+        catch (Exception exception)
+        {
+            Log.Fatal(exception);
+        }
+    }
 
-    public async Task<LanguagesView> GetLanguagesAsync() => await _apiController.GetLanguagesAsync();
+    public async Task<LanguagesView> GetLanguagesAsync()
+    {
+        LanguagesView result = new();
+
+        try
+        {
+            result = await _apiController.GetLanguagesAsync();
+        }
+        catch (Exception exception)
+        {
+            Log.Fatal(exception);
+        }
+
+        return result;
+    }
 }

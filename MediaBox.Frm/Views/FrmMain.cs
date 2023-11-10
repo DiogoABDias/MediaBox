@@ -17,7 +17,7 @@ public partial class FrmMain : Form
     private async void FrmMain_Load(object sender, EventArgs e)
     {
         await _applicationController.LoginAsync();
-        _applicationController.ScanSources();
+        await _applicationController.ScanSourcesAsync();
         BtnAll.PerformClick();
     }
 

@@ -16,22 +16,29 @@ public class MediaController : IMediaController
 
         foreach (Media media in _media)
         {
-            if (media.Type != mediaType)
+            try
             {
-                continue;
-            }
+                if (media.Type != mediaType)
+                {
+                    continue;
+                }
 
-            switch (media.Type)
+                switch (media.Type)
+                {
+                    case MediaType.Movies:
+                        result.Movies.Add(Mapping.Mapper.Map<MovieView>(media));
+                        break;
+                    case MediaType.TvShows:
+                        result.TvShows.Add(Mapping.Mapper.Map<TvShowView>(media));
+                        break;
+                    case MediaType.Cartoons:
+                        result.Cartoons.Add(Mapping.Mapper.Map<TvShowView>(media));
+                        break;
+                }
+            }
+            catch (Exception exception)
             {
-                case MediaType.Movies:
-                    result.Movies.Add(Mapping.Mapper.Map<MovieView>(media));
-                    break;
-                case MediaType.TvShows:
-                    result.TvShows.Add(Mapping.Mapper.Map<TvShowView>(media));
-                    break;
-                case MediaType.Cartoons:
-                    result.Cartoons.Add(Mapping.Mapper.Map<TvShowView>(media));
-                    break;
+                Log.Fatal(exception);
             }
         }
 
@@ -42,13 +49,13 @@ public class MediaController : IMediaController
     {
         foreach (Source source in sources)
         {
-            if (source.Path is null)
-            {
-                continue;
-            }
-
             try
             {
+                if (source.Path is null)
+                {
+                    continue;
+                }
+
                 switch (source.Type)
                 {
                     case MediaType.Movies:
@@ -74,33 +81,40 @@ public class MediaController : IMediaController
 
         foreach (DirectoryInfo subFolder in subFolders)
         {
-            foreach (FileInfo file in subFolder.GetFiles())
+            try
+            {
+                foreach (FileInfo file in subFolder.GetFiles())
+                {
+                    try
+                    {
+                        if (GetFileType(file.Extension) != FileType.Video)
+                        {
+                            continue;
+                        }
+
+                        await ScanMovieAsync(subFolder.Name, file, sourceId);
+                    }
+                    catch (Exception exception)
+                    {
+                        Log.Fatal(exception);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.Fatal(exception);
+            }
+        }
+
+        foreach (FileInfo file in folder.GetFiles())
+        {
+            try
             {
                 if (GetFileType(file.Extension) != FileType.Video)
                 {
                     continue;
                 }
 
-                try
-                {
-                    await ScanMovieAsync(subFolder.Name, file, sourceId);
-                }
-                catch (Exception exception)
-                {
-                    Log.Fatal(exception);
-                }
-            }
-        }
-
-        foreach (FileInfo file in folder.GetFiles())
-        {
-            if (GetFileType(file.Extension) != FileType.Video)
-            {
-                continue;
-            }
-
-            try
-            {
                 await ScanMovieAsync(string.Empty, file, sourceId);
             }
             catch (Exception exception)
@@ -173,13 +187,13 @@ public class MediaController : IMediaController
 
         foreach (FileInfo file in files)
         {
-            if (GetFileType(file.Extension) != FileType.Video)
-            {
-                continue;
-            }
-
             try
             {
+                if (GetFileType(file.Extension) != FileType.Video)
+                {
+                    continue;
+                }
+
                 TvShowEpisode episode = ScanEpisode(file);
 
                 int index = result.FindIndex(x => x.Number == episode.Season);

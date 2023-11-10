@@ -19,9 +19,9 @@ public class CoreController : ICoreController
         catch (NotFoundException)
         {
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            Log.Fatal(ex);
+            Log.Fatal(exception);
         }
 
         return result;
@@ -41,9 +41,9 @@ public class CoreController : ICoreController
         catch (NotFoundException)
         {
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            Log.Fatal(ex);
+            Log.Fatal(exception);
         }
 
         return result;
@@ -62,9 +62,9 @@ public class CoreController : ICoreController
 
             Process.Start(startInfo);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            Log.Fatal(ex);
+            Log.Fatal(exception);
         }
     }
 }

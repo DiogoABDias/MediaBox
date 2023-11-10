@@ -6,11 +6,9 @@ internal class Movie : Media
     internal List<Subtitle> Subtitles { get; private set; }
 
     //Constructor
-    internal Movie(string name, int year, MediaType type, string path)
+    internal Movie(string name, int year, MediaType type, int sourceId, string path)
+        : base(name, year, type, sourceId)
     {
-        Name = name;
-        Year = year;
-        Type = type;
         Path = path;
         Subtitles = new();
     }

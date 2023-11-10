@@ -22,10 +22,53 @@ public class MappingProfile : Profile
 {
     public MappingProfile()
     {
+        //Models to ViewModels
         CreateMap<Media, MediaView>();
         CreateMap<Movie, MovieView>();
         CreateMap<TvShow, TvShowView>();
         CreateMap<TvShowSeason, TvShowSeasonView>();
         CreateMap<TvShowEpisode, TvShowEpisodeView>();
+        CreateMap<MediaInformation, MediaInformationView>();
+
+        //ApiModels to Models
+        CreateMap<ApiMedia, MediaInformation>()
+            .ForMember(dest => dest.Overviews, src => src.Ignore())
+            .AfterMap((src, dest) =>
+            {
+                if (!string.IsNullOrWhiteSpace(src.PrimaryLanguage) && !string.IsNullOrWhiteSpace(src.Name))
+                {
+                    dest.Names.Add(src.PrimaryLanguage, src.Name);
+                }
+
+                if (src.Translations is not null)
+                {
+                    foreach (PropertyInfo prop in src.Translations.GetType().GetProperties())
+                    {
+                        object? value = prop.GetValue(src.Translations);
+
+                        if (value is null)
+                        {
+                            continue;
+                        }
+
+                        dest.Names.Add(prop.Name, (string)value);
+                    }
+                }
+
+                if (src.Overviews is not null)
+                {
+                    foreach (PropertyInfo prop in src.Overviews.GetType().GetProperties())
+                    {
+                        object? value = prop.GetValue(src.Overviews);
+
+                        if (value is null)
+                        {
+                            continue;
+                        }
+
+                        dest.Overviews.Add(prop.Name, (string)value);
+                    }
+                }
+            });
     }
 }

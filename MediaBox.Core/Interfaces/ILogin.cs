@@ -3,5 +3,5 @@
 internal interface ILogin
 {
     [Post("/login")]
-    Task<Response<ApiToken>> LoginAsync([Body] Credentials body);
+    Task<ApiResponseLogin<ApiToken>> LoginAsync([Body] ApiCredentials body);
 }

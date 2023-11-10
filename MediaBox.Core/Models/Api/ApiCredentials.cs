@@ -1,6 +1,6 @@
 ﻿namespace MediaBox.Core.Models.Api;
 
-internal class Credentials
+internal class ApiCredentials
 {
     [JsonProperty(PropertyName = "apikey")]
     public string? ApiKey { get; set; }

@@ -4,4 +4,5 @@ public class MovieView
     public string? Name { get; set; }
     public int Year { get; set; }
     public string? Path { get; set; }
+    public MediaInformationView? Information { get; set; }
 }

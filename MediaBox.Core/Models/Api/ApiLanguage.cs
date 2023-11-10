@@ -1,6 +1,6 @@
 ﻿namespace MediaBox.Core.Models.Api;
 
-internal class Language
+internal class ApiLanguage
 {
     [JsonProperty(PropertyName = "id")]
     public string? Id { get; set; }

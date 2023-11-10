@@ -1,6 +1,6 @@
 ﻿namespace MediaBox.Core.Models.Api;
 
-internal class Response<T>
+internal class ApiResponseLogin<T>
 {
     [JsonProperty(PropertyName = "status")]
     public string? Status { get; set; }

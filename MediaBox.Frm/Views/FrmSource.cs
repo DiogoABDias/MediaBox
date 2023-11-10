@@ -1,52 +1,73 @@
 ﻿namespace MediaBox.Frm.Views;
 public partial class FrmSource : Form
 {
-    private SourceView? _source;
-    private readonly ErrorProvider _erpName;
+    private readonly IApplicationController _applicationController;
+    private ErrorProvider _errorProvider;
+    internal SourceView? Source;
 
-    public FrmSource(SourceView? source = null)
+    private bool AddMode => Source == null;
+
+    public FrmSource(IApplicationController applicationController, SourceView? source = default)
     {
         InitializeComponent();
-        _source = source;
+
+        _applicationController = applicationController;
 
         //Errors
-        _erpName = new()
+        _errorProvider = new()
         {
             BlinkStyle = ErrorBlinkStyle.NeverBlink
         };
 
-        _erpName.SetIconAlignment(TxtName, ErrorIconAlignment.MiddleRight);
-        _erpName.SetIconPadding(TxtName, 5);
+        if (source is not null)
+        {
+            Source = new()
+            {
+                Id = source.Id,
+                Name = source.Name,
+                Type = source.Type,
+                Language = source.Language,
+                Path = source.Path
+            };
+        }
     }
 
     private async void FrmSourcesNew_Load(object sender, EventArgs e)
     {
-        LanguagesView languages = await SourceController.GetLanguagesAsync();
+        LanguagesView languages = await _applicationController.GetLanguagesAsync();
 
         CmbLanguage.DataSource = languages.Languages;
         CmbLanguage.ValueMember = "Id";
         CmbLanguage.DisplayMember = "NativeName";
         CmbType.SelectedIndex = 0;
 
-        if (_source is null)
+        TxtName.Enabled = AddMode;
+
+        if (!AddMode)
         {
-            return;
+            TxtName.Text = Source!.Name;
+            CmbType.SelectedItem = Source.Type;
+            CmbLanguage.SelectedValue = Source.Language;
+            TxtPath.Text = Source.Path;
         }
 
-        TxtName.Enabled = false;
-        TxtName.Text = _source.Name;
-        CmbType.SelectedItem = _source.Type;
-        CmbLanguage.SelectedValue = _source.Language;
-        TxtPath.Text = _source.Path;
+        //Errors
+        _errorProvider = new()
+        {
+            BlinkStyle = ErrorBlinkStyle.NeverBlink
+        };
     }
 
     //////////////////////////////////////// EVENTS ////////////////////////////////////////
 
-    private void TxtName_TextChanged(object sender, EventArgs e) => _erpName.Clear();
+    private void TxtName_TextChanged(object sender, EventArgs e) => _errorProvider.Clear();
+
+    private void TxtPath_TextChanged(object sender, EventArgs e) => _errorProvider.Clear();
 
     private void TxtPath_Click(object sender, EventArgs e)
     {
-        using FolderBrowserDialog fbd = new() { SelectedPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "" };
+        string appLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+        FolderBrowserDialog fbd = new() { SelectedPath = AddMode ? appLocation : $"{Source!.Path}\\" };
         DialogResult result = fbd.ShowDialog();
 
         if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
@@ -57,54 +78,56 @@ public partial class FrmSource : Form
 
     private void BtnSave_Click(object sender, EventArgs e)
     {
-        bool add = _source is null;
-
-        _source = new()
+        if (string.IsNullOrWhiteSpace(TxtName.Text))
         {
-            Name = TxtName.Text,
-            Type = CmbType.SelectedItem.ToString() ?? "",
-            Language = CmbLanguage.SelectedValue?.ToString() ?? "",
-            Path = TxtPath.Text
-        };
+            _errorProvider.SetIconAlignment(TxtName, ErrorIconAlignment.MiddleRight);
+            _errorProvider.SetIconPadding(TxtName, 5);
+            _errorProvider.SetError(TxtName, "Name is required!");
+            return;
+        }
 
-        if (add)
+        if (AddMode && _applicationController.SourceNameExists(TxtName.Text))
         {
-            bool hasErrors = false;
+            _errorProvider.SetIconAlignment(TxtName, ErrorIconAlignment.MiddleRight);
+            _errorProvider.SetIconPadding(TxtName, 5);
+            _errorProvider.SetError(TxtName, "A source with this name already exists!");
+            return;
+        }
 
-            if (string.IsNullOrWhiteSpace(TxtName.Text))
+        if (string.IsNullOrWhiteSpace(TxtPath.Text))
+        {
+            _errorProvider.SetIconAlignment(TxtPath, ErrorIconAlignment.MiddleRight);
+            _errorProvider.SetIconPadding(TxtPath, 5);
+            _errorProvider.SetError(TxtPath, "Path is required!");
+            return;
+        }
+
+        if (AddMode)
+        {
+            Source = new()
             {
-                _erpName.SetError(TxtName, "Name is required!");
-                hasErrors = true;
-            }
-
-            if (Program._sources.Sources.Any(x => x.Name == TxtName.Text))
-            {
-                _erpName.SetError(TxtName, "A source with this name already exists!");
-                hasErrors = true;
-            }
-
-            if (string.IsNullOrWhiteSpace(TxtPath.Text))
-            {
-                _erpName.SetError(TxtPath, "Path is required!");
-                hasErrors = true;
-            }
-
-            if (hasErrors)
-            {
-                _source = null;
-                return;
-            }
-
-            SourceController.AddSource(_source);
+                Id = new Random((int)DateTime.UtcNow.Ticks).Next(10000, 99999),
+                Name = TxtName.Text,
+                Type = CmbType.SelectedItem.ToString() ?? "",
+                Language = CmbLanguage.SelectedValue?.ToString() ?? "",
+                Path = TxtPath.Text
+            };
         }
         else
         {
-            SourceController.EditSource(_source);
+            Source!.Name = TxtName.Text;
+            Source.Type = CmbType.SelectedItem.ToString() ?? string.Empty;
+            Source.Language = CmbLanguage.SelectedValue?.ToString() ?? string.Empty;
+            Source.Path = TxtPath.Text;
         }
 
         DialogResult = DialogResult.OK;
         Close();
     }
 
-    private void BtnCancel_Click(object sender, EventArgs e) => Close();
+    private void BtnCancel_Click(object sender, EventArgs e)
+    {
+        Source = null;
+        Close();
+    }
 }

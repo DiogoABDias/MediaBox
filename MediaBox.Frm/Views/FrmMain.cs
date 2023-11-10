@@ -1,26 +1,33 @@
 ﻿namespace MediaBox.Frm.Views;
 public partial class FrmMain : Form
 {
+    private readonly ICoreController _coreController;
+    private readonly IApplicationController _applicationController;
     private MediaView _media = new();
     private ContentType _currentContent;
 
-    public FrmMain() => InitializeComponent();
+    public FrmMain(ICoreController coreController, IApplicationController applicationController)
+    {
+        InitializeComponent();
+
+        _coreController = coreController;
+        _applicationController = applicationController;
+    }
 
     private async void FrmMain_Load(object sender, EventArgs e)
     {
-        await ApiController.LoginAsync();
-        MediaController.ScanSources();
+        await _applicationController.LoginAsync();
+        _applicationController.ScanSources();
+        BtnAll.PerformClick();
     }
-
-    private void FrmMain_Shown(object sender, EventArgs e) => BtnAll_Click(new(), new());
 
     //////////////////////////////////////// EVENTS ////////////////////////////////////////
 
     private void BtnAll_Click(object sender, EventArgs e)
     {
-        MediaView movies = MediaController.GetMedia(MediaType.Movies);
-        MediaView tvShows = MediaController.GetMedia(MediaType.TvShows);
-        MediaView cartoons = MediaController.GetMedia(MediaType.Cartoons);
+        MediaView movies = _applicationController.GetMedia(MediaType.Movies);
+        MediaView tvShows = _applicationController.GetMedia(MediaType.TvShows);
+        MediaView cartoons = _applicationController.GetMedia(MediaType.Cartoons);
 
         _media = new()
         {
@@ -29,31 +36,39 @@ public partial class FrmMain : Form
             Cartoons = cartoons.Cartoons
         };
 
-        LoadMedia();
+        DisplayMedia();
     }
 
     private void BtnMovies_Click(object sender, EventArgs e)
     {
-        _media = MediaController.GetMedia(MediaType.Movies);
-        LoadMedia();
+        _media = _applicationController.GetMedia(MediaType.Movies);
+        DisplayMedia();
     }
 
     private void BtnTvShows_Click(object sender, EventArgs e)
     {
-        _media = MediaController.GetMedia(MediaType.TvShows);
-        LoadMedia();
+        _media = _applicationController.GetMedia(MediaType.TvShows);
+        DisplayMedia();
     }
 
     private void BtnCartoons_Click(object sender, EventArgs e)
     {
-        _media = MediaController.GetMedia(MediaType.Cartoons);
-        LoadMedia();
+        _media = _applicationController.GetMedia(MediaType.Cartoons);
+        DisplayMedia();
     }
 
     private void BtnSources_Click(object sender, EventArgs e)
     {
-        FrmSources form = new();
-        form.ShowDialog();
+        FrmSources form = new(_applicationController);
+        DialogResult result = form.ShowDialog();
+
+        if (result != DialogResult.OK)
+        {
+            return;
+        }
+
+        //SourceController.DeleteSources(form.SourcesToDelete);
+        //MediaController.ScanSourcesFromConfiguration(form.SourcesToScan);
     }
 
     private void BtnSettings_Click(object sender, EventArgs e)
@@ -81,23 +96,23 @@ public partial class FrmMain : Form
         {
             case ContentType.TvShows:
             case ContentType.Cartoons:
-                LoadSeasons(item.Tag.ToString() ?? "");
+                DisplaySeasons(item.Tag.ToString() ?? "");
                 break;
             case ContentType.TvShowsSeasons:
             case ContentType.CartoonsSeasons:
-                LoadEpisodes(item.Tag.ToString() ?? "");
+                DisplayEpisodes(item.Tag.ToString() ?? "");
                 break;
             case ContentType.Movies:
-                break;
             case ContentType.TvShowsEpisodes:
             case ContentType.CartoonsEpisodes:
+                _coreController.PlayVideo("");
                 break;
         }
     }
 
     //////////////////////////////////////// METHODS ////////////////////////////////////////
 
-    private void LoadMedia()
+    private void DisplayMedia()
     {
         LsvMedia.BeginUpdate();
 
@@ -149,7 +164,7 @@ public partial class FrmMain : Form
         }
     }
 
-    private void LoadSeasons(string tag)
+    private void DisplaySeasons(string tag)
     {
         TvShowView media = new();
 
@@ -172,21 +187,24 @@ public partial class FrmMain : Form
 
         LsvMedia.Items.Clear();
 
-        foreach (TvShowSeasonView season in media.Seasons)
+        if (media.Seasons is not null)
         {
-            ListViewItem item = new()
+            foreach (TvShowSeasonView season in media.Seasons)
             {
-                Text = season.Number.ToString(),
-                Tag = $"{tag}|{season.Number}"
-            };
+                ListViewItem item = new()
+                {
+                    Text = season.Number.ToString(),
+                    Tag = $"{tag}|{season.Number}"
+                };
 
-            LsvMedia.Items.Add(item);
+                LsvMedia.Items.Add(item);
+            }
         }
 
         LsvMedia.EndUpdate();
     }
 
-    private void LoadEpisodes(string tag)
+    private void DisplayEpisodes(string tag)
     {
         TvShowView media = new();
 
@@ -214,15 +232,20 @@ public partial class FrmMain : Form
 
         LsvMedia.Items.Clear();
 
-        foreach (TvShowEpisodeView episode in media.Seasons[season - 1].Episodes)
+        if (media.Seasons is not null)
         {
-            ListViewItem item = new()
-            {
-                Text = episode.Number.ToString(),
-                Tag = $"{tag}|{episode.Number}"
-            };
+            TvShowSeasonView tvshowSeason = media.Seasons.Single(x => x.Number == season);
 
-            LsvMedia.Items.Add(item);
+            foreach (TvShowEpisodeView episode in tvshowSeason.Episodes)
+            {
+                ListViewItem item = new()
+                {
+                    Text = episode.Number.ToString(),
+                    Tag = $"{tag}|{episode.Number}"
+                };
+
+                LsvMedia.Items.Add(item);
+            }
         }
 
         LsvMedia.EndUpdate();

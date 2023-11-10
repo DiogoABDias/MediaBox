@@ -1,9 +1,19 @@
 ﻿namespace MediaBox.Frm.Views;
 public partial class FrmSources : Form
 {
-    public FrmSources() => InitializeComponent();
+    private readonly IApplicationController _applicationController;
+    private readonly SourcesView _sources;
+    internal List<KeyValuePair<SourceView, SourceOperationType>> SourceChanges = new();
 
-    private void FrmSources_Load(object sender, EventArgs e) => LoadSources();
+    public FrmSources(IApplicationController applicationController)
+    {
+        InitializeComponent();
+
+        _applicationController = applicationController;
+        _sources = _applicationController.GetSources();
+    }
+
+    private void FrmSources_Load(object sender, EventArgs e) => DisplaySources();
 
     //////////////////////////////////////// EVENTS ////////////////////////////////////////
 
@@ -15,7 +25,7 @@ public partial class FrmSources : Form
 
     private void BtnNew_Click(object sender, EventArgs e)
     {
-        FrmSource form = new();
+        FrmSource form = new(_applicationController);
         DialogResult result = form.ShowDialog();
 
         if (result != DialogResult.OK)
@@ -23,22 +33,22 @@ public partial class FrmSources : Form
             return;
         }
 
-        LoadSources();
+        if (form.Source is not null)
+        {
+            KeyValuePair<SourceView, SourceOperationType> sourceChange = new(form.Source, SourceOperationType.Add);
+            SourceChanges.Add(sourceChange);
+            _sources.Sources.Add(form.Source);
+        }
+
+        DisplaySources();
     }
 
     private void BtnEdit_Click(object sender, EventArgs e)
     {
-        if (LsvSources.SelectedItems.Count == 0)
-        {
-            return;
-        }
+        ListViewItem item = LsvSources.SelectedItems[0];
+        int index = _sources.Sources.FindIndex(x => x.Id == (int)item.Tag);
 
-        if (Program._sources?.Sources.Count == 0)
-        {
-            return;
-        }
-
-        FrmSource form = new(Program._sources?.Sources[LsvSources.SelectedIndices[0]]);
+        FrmSource form = new(_applicationController, _sources.Sources[index]);
         DialogResult result = form.ShowDialog();
 
         if (result != DialogResult.OK)
@@ -46,89 +56,59 @@ public partial class FrmSources : Form
             return;
         }
 
-        LoadSources();
+        if (form.Source is not null)
+        {
+            KeyValuePair<SourceView, SourceOperationType> sourceChange = new(form.Source, SourceOperationType.Edit);
+            SourceChanges.Add(sourceChange);
+            _sources.Sources[index] = form.Source;
+        }
+
+        DisplaySources();
     }
 
     private void BtnDelete_Click(object sender, EventArgs e)
     {
-        if (LsvSources.SelectedItems.Count == 0)
-        {
-            return;
-        }
+        ListViewItem item = LsvSources.SelectedItems[0];
+        SourceView source = _sources.Sources.First(x => x.Id == (int)item.Tag);
 
-        if (Program._sources?.Sources.Count == 0)
-        {
-            return;
-        }
-
-        if (Program._sources is null)
-        {
-            return;
-        }
-
-        SourceView source = Program._sources.Sources[LsvSources.SelectedIndices[0]];
-        string name = source.Name ?? "";
-
-        SourceController.DeleteSource(name);
+        KeyValuePair<SourceView, SourceOperationType> sourceChange = new(source, SourceOperationType.Delete);
+        SourceChanges.Add(sourceChange);
+        _sources.Sources.Remove(source);
         LsvSources.Items.RemoveAt(LsvSources.SelectedIndices[0]);
     }
 
     private async void BtnSave_Click(object sender, EventArgs e)
     {
-        await SourceController.SaveSourcesAsync();
+        await _applicationController.SaveSourceChangesAsync(SourceChanges);
+
+        DialogResult = DialogResult.OK;
         Close();
     }
 
-    private void BtnCancel_Click(object sender, EventArgs e)
-    {
-        SourceController.DiscardChanges();
-        Close();
-    }
+    private void BtnCancel_Click(object sender, EventArgs e) => Close();
 
     //////////////////////////////////////// METHODS ////////////////////////////////////////
 
-    private void LoadSources()
+    private void DisplaySources()
     {
-        Program._sources = SourceController.GetSources();
-
-        if (Program._sources.Sources.Count == 0)
-        {
-            return;
-        }
-
         LsvSources.BeginUpdate();
 
-        if (LsvSources.Items.Count > 0)
-        {
-            LsvSources.Items.Clear();
-        }
+        LsvSources.Items.Clear();
 
-        foreach (SourceView source in Program._sources.Sources)
+        foreach (SourceView source in _sources.Sources)
         {
             ListViewItem item;
             ListViewItem.ListViewSubItem subItem;
 
-            item = new()
-            {
-                Text = source.Name
-            };
+            item = new() { Tag = source.Id, Text = source.Name };
 
-            subItem = new()
-            {
-                Text = source.Type
-            };
+            subItem = new() { Text = source.Type };
             item.SubItems.Add(subItem);
 
-            subItem = new()
-            {
-                Text = source.Language
-            };
+            subItem = new() { Text = source.Language };
             item.SubItems.Add(subItem);
 
-            subItem = new()
-            {
-                Text = source.Path
-            };
+            subItem = new() { Text = source.Path };
             item.SubItems.Add(subItem);
 
             LsvSources.Items.Add(item);

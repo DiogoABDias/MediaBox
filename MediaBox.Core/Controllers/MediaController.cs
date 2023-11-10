@@ -1,12 +1,16 @@
 ﻿namespace MediaBox.Core.Controllers;
-public static class MediaController
+public class MediaController : IMediaController
 {
-    private static List<Media> _media = new();
-    private static readonly string[] _videoFormats = { ".mov", ".mkv", ".m4v", ".avi", ".flv", ".3gp", ".mp4" };
-    private static readonly string[] _audioFormats = { ".mp3", ".wav", ".flac", ".m4a", ".ogg", ".aac", ".wma", ".ape" };
-    private static readonly string[] _subtitleFormats = { ".srt", ".ssa", ".ttml", ".sbv", ".dfxp", ".vtt" };
+    private readonly IApiController _apiController;
 
-    public static MediaView GetMedia(MediaType mediaType)
+    private readonly List<Media> _media = new();
+    private readonly string[] _videoFormats = { ".mov", ".mkv", ".m4v", ".avi", ".flv", ".3gp", ".mp4" };
+    private readonly string[] _audioFormats = { ".mp3", ".wav", ".flac", ".m4a", ".ogg", ".aac", ".wma", ".ape" };
+    private readonly string[] _subtitleFormats = { ".srt", ".ssa", ".ttml", ".sbv", ".dfxp", ".vtt" };
+
+    public MediaController(IApiController apiController) => _apiController = apiController;
+
+    public MediaView GetMedia(MediaType mediaType)
     {
         MediaView result = new();
 
@@ -34,30 +38,24 @@ public static class MediaController
         return result;
     }
 
-    public static void ScanSources()
+    public async Task ScanSourcesAsync(List<Source> sources)
     {
-        _media = new();
-
-        SourcesView sources = SourceController.GetSources();
-
-        foreach (SourceView source in sources.Sources)
+        foreach (Source source in sources)
         {
+            if (source.Path is null)
+            {
+                continue;
+            }
+
             try
             {
-                if (source.Path is null)
-                {
-                    continue;
-                }
-
-                MediaType mediaType = source.Type.DehumanizeTo<MediaType>();
-
-                switch (mediaType)
+                switch (source.Type)
                 {
                     case MediaType.Movies:
-                        _media.AddRange(ScanSourceMovie(source.Path));
+                        await ScanSourceMovieAsync(source.Path, source.Id);
                         break;
                     default:
-                        _media.AddRange(ScanSourceTvShow(source.Path, mediaType));
+                        await ScanSourceTvShowAsync(source.Path, source.Type, source.Id);
                         break;
                 }
             }
@@ -69,10 +67,8 @@ public static class MediaController
         }
     }
 
-    private static List<Movie> ScanSourceMovie(string path)
+    private async Task ScanSourceMovieAsync(string path, int sourceId)
     {
-        List<Movie> result = new();
-
         DirectoryInfo folder = new(path);
         DirectoryInfo[] subFolders = folder.GetDirectories();
 
@@ -87,8 +83,7 @@ public static class MediaController
 
                 try
                 {
-                    Movie movie = ScanMovie(subFolder.Name, file);
-                    result.Add(movie);
+                    await ScanMovieAsync(subFolder.Name, file, sourceId);
                 }
                 catch (Exception exception)
                 {
@@ -106,32 +101,31 @@ public static class MediaController
 
             try
             {
-                Movie movie = ScanMovie(string.Empty, file);
-                result.Add(movie);
+                await ScanMovieAsync(string.Empty, file, sourceId);
             }
             catch (Exception exception)
             {
                 Log.Fatal(exception);
             }
         }
-
-        return result;
     }
 
-    private static Movie ScanMovie(string directory, FileInfo file)
+    private async Task ScanMovieAsync(string directory, FileInfo file, int sourceId)
     {
         string filename = !string.IsNullOrEmpty(directory) ? directory : Path.GetFileNameWithoutExtension(file.Name);
         string name = filename.Split(" (")[0];
         string year = filename.Split(" (")[1].Replace(")", "");
 
-        Movie movie = new(name, Convert.ToInt32(year), MediaType.Movies, file.FullName);
-        return movie;
+        Movie movie = new(name, Convert.ToInt32(year), MediaType.Movies, sourceId, file.FullName);
+
+        MediaInformation information = await _apiController.SearchAsync(movie.Name, movie.Year, "movie");
+        movie.AddInformation(information);
+
+        _media.Add(movie);
     }
 
-    private static List<TvShow> ScanSourceTvShow(string path, MediaType mediaType)
+    private async Task ScanSourceTvShowAsync(string path, MediaType mediaType, int sourceId)
     {
-        List<TvShow> result = new();
-
         DirectoryInfo[] subFolders = new DirectoryInfo(path).GetDirectories();
 
         foreach (DirectoryInfo subFolder in subFolders)
@@ -141,24 +135,25 @@ public static class MediaController
                 string? name = subFolder.Name.Split(" (")[0];
                 string? year = subFolder.Name.Split(" (")[1].Replace(")", "");
 
-                TvShow tvShow = new(name, Convert.ToInt32(year), mediaType);
+                TvShow tvShow = new(name, Convert.ToInt32(year), sourceId, mediaType);
 
-                List<TvShowSeason> seasons = tvShow.Seasons;
-                ScanTvShow(subFolder.FullName, ref seasons);
+                MediaInformation information = await _apiController.SearchAsync(tvShow.Name, tvShow.Year, "series");
+                tvShow.AddInformation(information);
 
-                result.Add(tvShow);
+                tvShow.AddSeasons(ScanTvShow(subFolder.FullName));
+
+                _media.Add(tvShow);
             }
             catch (Exception exception)
             {
                 Log.Fatal(exception);
             }
         }
-
-        return result;
     }
 
-    private static void ScanTvShow(string path, ref List<TvShowSeason> seasons)
+    private List<TvShowSeason> ScanTvShow(string path)
     {
+        List<TvShowSeason> result = new();
         DirectoryInfo folder = new(path);
 
         FileInfo[] files = folder.GetFiles();
@@ -168,7 +163,7 @@ public static class MediaController
         {
             try
             {
-                ScanTvShow(subFolder.FullName, ref seasons);
+                result.AddRange(ScanTvShow(subFolder.FullName));
             }
             catch (Exception exception)
             {
@@ -187,24 +182,26 @@ public static class MediaController
             {
                 TvShowEpisode episode = ScanEpisode(file);
 
-                int index = seasons.FindIndex(x => x.Number == episode.Season);
+                int index = result.FindIndex(x => x.Number == episode.Season);
 
                 if (index != -1)
                 {
-                    seasons[index].Episodes.Add(episode);
+                    result[index].Episodes.Add(episode);
                     continue;
                 }
 
                 TvShowSeason season = new(episode.Season);
 
                 season.AddEpisode(episode);
-                seasons.Add(season);
+                result.Add(season);
             }
             catch (Exception exception)
             {
                 Log.Fatal(exception);
             }
         }
+
+        return result;
     }
 
     private static TvShowEpisode ScanEpisode(FileInfo file)
@@ -224,7 +221,7 @@ public static class MediaController
         return episode;
     }
 
-    private static FileType GetFileType(string extension)
+    private FileType GetFileType(string extension)
     {
         if (_videoFormats.Contains(extension))
         {
@@ -243,4 +240,6 @@ public static class MediaController
 
         return FileType.Unknown;
     }
+
+    internal void DeleteMedia(int sourceId) => _media.RemoveAll(x => x.SourceId == sourceId);
 }

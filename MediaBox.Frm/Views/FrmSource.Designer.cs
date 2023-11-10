@@ -119,6 +119,7 @@
             TxtPath.Size = new Size(400, 23);
             TxtPath.TabIndex = 4;
             TxtPath.Click += TxtPath_Click;
+            TxtPath.TextChanged += TxtPath_TextChanged;
             // 
             // BtnSave
             // 

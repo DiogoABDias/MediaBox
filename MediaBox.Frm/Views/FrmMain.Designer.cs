@@ -49,6 +49,7 @@
             LsvMedia.TabIndex = 5;
             LsvMedia.UseCompatibleStateImageBehavior = false;
             LsvMedia.View = View.Details;
+            LsvMedia.SelectedIndexChanged += LsvMedia_SelectedIndexChanged;
             LsvMedia.DoubleClick += LsvMedia_DoubleClick;
             // 
             // ColName
@@ -134,7 +135,6 @@
             StartPosition = FormStartPosition.CenterScreen;
             Text = "MediaBox";
             Load += FrmMain_Load;
-            Shown += FrmMain_Shown;
             ResumeLayout(false);
         }
 

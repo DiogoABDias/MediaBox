@@ -49,7 +49,7 @@ public class CoreController : ICoreController
         return result;
     }
 
-    public void PlayVideo(string path)
+    public void PlayVideo(string file, string subtitle)
     {
         try
         {
@@ -57,7 +57,7 @@ public class CoreController : ICoreController
             //.\vlc.exe "path\video.mp4" --no-sub-autodetect-file --sub-file="path\subtitles.srt" --qt-continue=2
             ProcessStartInfo startInfo = new("C:\\Program Files\\VideoLAN\\VLC\\vlc.exe")
             {
-                Arguments = "\"E:\\Movies\\The Matrix Reloaded\\The.Matrix.Reloaded.2003.1080p.BrRip.x264.YIFY.mp4\" --no-sub-autodetect-file --sub-file=\"E:\\Movies\\The Matrix Reloaded\\The.Matrix.Reloaded.2003.1080p.BrRip.x264.YIFY.srt\" --qt-continue=2"
+                Arguments = $"\"{file}\" --no-sub-autodetect-file --sub-file=\"{subtitle}\" --qt-continue=2"
             };
 
             Process.Start(startInfo);

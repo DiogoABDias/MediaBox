@@ -81,33 +81,54 @@ public partial class FrmMain : Form
         ListViewItem item = LsvMedia.SelectedItems[0];
         ContentType currentContent;
 
-        if (_currentContent == ContentType.All)
-        {
-            string tag = item.Tag.ToString() ?? "";
-            string[] data = tag.Split('|');
-            currentContent = Enum.Parse<ContentType>(data[0], true);
-        }
-        else
-        {
-            currentContent = _currentContent;
-        }
+        string tag = item.Tag.ToString() ?? "";
+        string[] data = tag.Split('|');
+
+        currentContent = _currentContent == ContentType.All ? Enum.Parse<ContentType>(data[0], true) : _currentContent;
+
+        List<TvShowSeasonView> seasons;
+        int season;
+        int episode;
+        string file = string.Empty;
+        string subtitle = string.Empty;
 
         switch (currentContent)
         {
             case ContentType.TvShows:
             case ContentType.Cartoons:
                 DisplaySeasons(item.Tag.ToString() ?? "");
-                break;
+                return;
             case ContentType.TvShowsSeasons:
             case ContentType.CartoonsSeasons:
                 DisplayEpisodes(item.Tag.ToString() ?? "");
-                break;
+                return;
             case ContentType.Movies:
+                file = _media.Movies.First(x => x.Name == data[1]).Path ?? string.Empty;
+                break;
             case ContentType.TvShowsEpisodes:
+                seasons = _media.TvShows.First(x => x.Name == data[1]).Seasons ?? new();
+
+                season = seasons.FindIndex(x => x.Number == Convert.ToInt32(data[2]));
+                episode = seasons[season].Episodes.FindIndex(x => x.Number == Convert.ToInt32(data[3]));
+
+                file = seasons[season].Episodes[episode].Path ?? string.Empty;
+                break;
             case ContentType.CartoonsEpisodes:
-                _coreController.PlayVideo("");
+                seasons = _media.Cartoons.First(x => x.Name == data[1]).Seasons ?? new();
+
+                season = seasons.FindIndex(x => x.Number == Convert.ToInt32(data[2]));
+                episode = seasons[season].Episodes.FindIndex(x => x.Number == Convert.ToInt32(data[3]));
+
+                file = seasons[season].Episodes[episode].Path ?? string.Empty;
                 break;
         }
+
+        if (file == string.Empty)
+        {
+            return;
+        }
+
+        _coreController.PlayVideo(file, subtitle);
     }
 
     //////////////////////////////////////// METHODS ////////////////////////////////////////

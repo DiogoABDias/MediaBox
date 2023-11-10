@@ -9,13 +9,20 @@ public class SourceController : ISourceController
 
     private async Task LoadSourcesAsync()
     {
-        if (!File.Exists("C:\\sources.txt"))
+        try
         {
-            return;
-        }
+            if (!File.Exists($"{AppDomain.CurrentDomain.BaseDirectory}sources.txt"))
+            {
+                return;
+            }
 
-        string content = await File.ReadAllTextAsync("C:\\sources.txt");
-        _sources = JsonConvert.DeserializeObject<List<Source>>(content) ?? new();
+            string content = await File.ReadAllTextAsync($"{AppDomain.CurrentDomain.BaseDirectory}sources.txt");
+            _sources = JsonConvert.DeserializeObject<List<Source>>(content) ?? new();
+        }
+        catch (Exception exception)
+        {
+            Log.Fatal(exception);
+        }
     }
 
     public async Task SaveSourcesAsync()
